@@ -1,0 +1,36 @@
+{
+
+    "name": "luckyraul/symfony-yookassa",
+    "authors": [
+        {
+            "name": "Nikita Tarasov",
+            "email": "nikita@mygento.com"
+        }
+    ],
+    "type": "symfony-bundle",
+    "license": "proprietary",
+    "description": "Symfony Payment Yookassa",
+    "prefer-stable": true,
+    "require": {
+        "symfony/framework-bundle": "^7.0",
+        "yoomoney/yookassa-sdk-php": "^3.8"
+    },
+    "require-dev": {
+        "mygento/symfony-standard": "^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mygento\\Yookassa\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "platform": {
+          "php": "8.2.20"
+        },
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpro/grumphp": true
+        }
+    }
+}
