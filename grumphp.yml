@@ -12,5 +12,7 @@ grumphp:
     phpcsfixer:
       config: '.php-cs-fixer.php'
     phplint:
+    phpstan:
+      level: 8
     composer:
       no_check_lock: true
