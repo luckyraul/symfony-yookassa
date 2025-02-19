@@ -1,5 +1,4 @@
 {
-
     "name": "luckyraul/symfony-yookassa",
     "authors": [
         {
@@ -12,6 +11,7 @@
     "description": "Symfony Payment Yookassa",
     "prefer-stable": true,
     "require": {
+        "luckyraul/symfony-payment": "dev-master",
         "symfony/framework-bundle": "^7.0",
         "yoomoney/yookassa-sdk-php": "^3.8"
     },
