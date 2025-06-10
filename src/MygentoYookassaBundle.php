@@ -34,7 +34,7 @@ class MygentoYookassaBundle extends AbstractBundle
         $container->services()->set('mygento.yookassa_payment_adapter', YookassaAdapter::class)
             ->tag('mygento.payment_adapter_factory')
             ->arg(0, service('mygento.yookassa_payment_config'))
-            ->arg(1, service('mygento.payment_service'));
+            ->arg(1, service('mygento.payment_basic'));
     }
 
     public function configure(DefinitionConfigurator $definition): void

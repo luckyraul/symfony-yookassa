@@ -8,7 +8,7 @@ use Mygento\Payment\Api\OrderInterface;
 use Mygento\Payment\Entity\Transaction;
 use Mygento\Payment\Entity\Registration;
 use Mygento\Payment\Model\PaymentInfo;
-use Mygento\Payment\Service\Management;
+use Mygento\Payment\Service\Basic;
 use Symfony\Component\HttpKernel\Kernel;
 use YooKassa\Client;
 use YooKassa\Model\Payment\PaymentStatus;
@@ -21,7 +21,7 @@ class YookassaAdapter extends AbstractAdapter
 
     public function __construct(
         private Config $config,
-        Management $service,
+        Basic $service,
     ) {
         parent::__construct($service);
     }
@@ -29,6 +29,11 @@ class YookassaAdapter extends AbstractAdapter
     public function isTwoStepPayment(): bool
     {
         return $this->config->isTwoStep();
+    }
+
+    public function supportsRegistration(): bool
+    {
+        return true;
     }
 
     public function supportsTwoStepPayment(): bool
@@ -261,11 +266,12 @@ class YookassaAdapter extends AbstractAdapter
             throw new \Exception('Unexpected payment metadata');
         }
 
-        $info = $this->getService()->getTransactionSummary(self::CODE, $paymentIdentifier);
+        $info = $this->getService()->getTransactionSummaryByPayment(self::CODE, $paymentIdentifier);
         $canAuth = PaymentStatus::WAITING_FOR_CAPTURE === $paymentResponse->getStatus() && 0 === bccomp($info->auth, '0');
         $canCapture = PaymentStatus::SUCCEEDED === $paymentResponse->getStatus() && 0 === bccomp($info->capture, '0') && $paymentResponse->getPaid();
         $canVoid = PaymentStatus::CANCELED === $paymentResponse->getStatus() && 0 === bccomp($info->void, '0');
-        $shouldDelete = PaymentStatus::CANCELED === $paymentResponse->getStatus() && 0 === bccomp($info->auth, '0');
+        $shouldReset = PaymentStatus::CANCELED === $paymentResponse->getStatus() && 0 === bccomp($info->auth, '0');
+        $shouldDelete = PaymentStatus::PENDING !== $paymentResponse->getStatus() && (1 === bccomp($info->auth, '0') ||  1 === bccomp($info->capture, '0'));
 
         if ($canAuth) {
             $this->getService()->createTransaction(
@@ -279,6 +285,7 @@ class YookassaAdapter extends AbstractAdapter
                 null,
                 $paymentResponse->jsonSerialize(),
             );
+            $info = $this->getService()->getTransactionSummaryByPayment(self::CODE, $paymentIdentifier);
         } elseif ($canCapture) {
             $parent = $this->getService()->findAuthTransaction(self::CODE, $paymentIdentifier);
             $saved = $paymentResponse->getPaymentMethod()?->getSaved() ?? false;
@@ -294,6 +301,7 @@ class YookassaAdapter extends AbstractAdapter
                 $paymentResponse->jsonSerialize(),
                 $saved ? $paymentResponse->getPaymentMethod()?->getId() : null,
             );
+            $info = $this->getService()->getTransactionSummaryByPayment(self::CODE, $paymentIdentifier);
         } elseif ($canVoid) {
             $parent = $this->getService()->findAuthTransaction(self::CODE, $paymentIdentifier);
             $this->getService()->createTransaction(
@@ -307,10 +315,14 @@ class YookassaAdapter extends AbstractAdapter
                 $parent,
                 $paymentResponse->jsonSerialize(),
             );
+            $info = $this->getService()->getTransactionSummaryByPayment(self::CODE, $paymentIdentifier);
         }
 
-        if ($shouldDelete) {
+        if ($shouldReset) {
             $this->getService()->resetRegistration(self::CODE, $metadata['orderNumber']);
+        }
+        if ($shouldDelete) {
+            $this->getService()->deleteRegistration(self::CODE, $metadata['orderNumber']);
         }
 
         return new PaymentInfo(
